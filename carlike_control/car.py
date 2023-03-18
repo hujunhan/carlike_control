@@ -1,12 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
+from carlike_control.wheel import Wheel
+from typing import List
 # Define the transformation matrix
-def transform_2d(x, y, theta):
-    c, s = np.cos(theta), np.sin(theta)
-    return np.array([[c, -s, x],
-                     [s, c, y],
-                     [0, 0, 1]])
+from carlike_control.helper import transform_2d
 class Car:
     def __init__(self, x=0, y=0, theta=0.0, length=4, width=2):
         self.x = x
@@ -14,35 +12,52 @@ class Car:
         self.theta = theta
         self.length = length
         self.width = width
-        self.w_v_transform = transform_2d(0, 0, 0)
-        # Define the body points, four corners of the rectangle, 2d
-        # defined by the length and width of the car
-        self.body_points=np.asarray([[self.width/2, self.length/2 ,1],
-                                     [self.width/2, -self.length/2,1],
-                                     [-self.width/2, -self.length/2,1],
-                                     [-self.width/2, self.length/2,1]]) # type: ignore
-        self.body_points= np.dot(self.w_v_transform, self.body_points.T).T
-    def draw(self):
-        print(self.body_points)
-        rect=Polygon(self.body_points[:,:2], closed=True, fill=False, edgecolor='r')
-        
-        self.w_v_transform=transform_2d(5,5,np.pi/6)
-        self.body_points= np.dot(self.w_v_transform, self.body_points.T).T
-        rect2=Polygon(self.body_points[:,:2], closed=True, fill=False, edgecolor='b')
-        # Plot the car by draw the rectangle defined by the body points
-        fig, ax = plt.subplots()
-        ax.add_patch(rect)
-        ax.add_patch(rect2)
-        ax.set_xlim(-10, 10)
-        ax.set_ylim(-10, 10)
-        ax.set_aspect('equal')
-        # ax.autoscale()
-        
-        plt.show()
-        
-        
+        self.w_v_transform = transform_2d(x,y,theta)
+        self.body_points=[]
+        self.wheels:List[Wheel]=[] ## List of wheels, left to right, front to back 0,1,2,3
+        for j in [1,-1]:
+            for i in [-1,1]:
+                self.wheels.append(Wheel(x=i*self.width/2,y=j*self.length/2))
+                self.body_points.append([i*self.width/2,j*self.length/2,1])
+        self.update_all_steer([0,0,0,0]) # set all wheels to 0 steer
+        self.body_points=np.array(self.body_points)
+        self.update_transform(x,y,theta)
+    def update_transform(self, x, y, theta):
+        """ update the transform matrix from world to vehicle frame
 
-        
+        Args:
+            x (_type_): x in world frame
+            y (_type_): y in world frame
+            theta (_type_): theta in world frame
+        """
+        self.w_v_transform=transform_2d(x,y,theta)
+    
+    def update_all_steer(self, theta_list):
+        """ update all wheels steer angle
 
-car = Car(x=0, y=0, theta=np.pi/4, length=4, width=2)
-car.draw()
+        Args:
+            theta_list (_type_): _description_
+        """
+        for i in range(len(self.wheels)):
+            self.wheels[i].update_steer(theta_list[i])
+
+    def update_pose(self,x,y,theta):
+        """update the pose of the car
+
+        Args:
+            x (_type_): x in world frame
+            y (_type_): y in world frame
+            theta (_type_): theta in world frame
+        """
+        self.x,self.y,self.theta=x,y,theta
+        self.update_transform(x,y,theta)
+        
+        
+if __name__ == "__main__":
+    
+    car = Car(x=5, y=5, theta=0, length=4, width=2)
+    print(f'body points in car frame: \n{car.body_points}')
+    
+    world_points=np.dot(car.w_v_transform,car.body_points.T).T
+    print(f'body points in world frame: \n{world_points}')
+    

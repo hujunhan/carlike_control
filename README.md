@@ -8,17 +8,18 @@ Control the car-like mobile robot
 TODO:
 
 - [ ] Add a description of the package
-- [ ] Add Wheel class
+- [x] Add Wheel class
   - width
   - radius
 - [ ] More on Car class
   - [ ] steer limit
-  - [ ] add wheels
+  - [x] add wheels
 - [ ] Add a Visualization class
-  - [ ] Add a method to draw a car with wheels
+  - [x] Add a method to draw a car with wheels
   - [ ] Add a method to draw a path
 
 
 ## Changelog
 
 * add the car class, show in world frame
+* refactor the code, add the wheel class, the viz class and test case for each class
