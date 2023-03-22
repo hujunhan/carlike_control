@@ -26,6 +26,8 @@ TODO:
 * add the car class, show in world frame
 * refactor the code, add the wheel class, the viz class and test case for each class
 * Add the dynamic simulation using bicycle model described in [1] page 20
+* Add path planning (cubic spline interpolation)
+* Add path tracking (MPC) // 2023.3.21
 
 
 ## References
