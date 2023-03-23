@@ -1,3 +1,6 @@
+## use MPC to control the carlike vehicle
+# Ref: https://atsushisakai.github.io/PythonRobotics/modules/path_tracking/model_predictive_speed_and_steering_control/model_predictive_speed_and_steering_control.html
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
@@ -280,7 +283,7 @@ def linear_mpc_control(xref, xbar, x0, dref):
     import cvxpy
     x = cvxpy.Variable((NX, T + 1))
     u = cvxpy.Variable((NU, T))
-
+ 
     cost = 0.0
     constraints = []
 
