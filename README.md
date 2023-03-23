@@ -28,6 +28,8 @@ TODO:
 * Add the dynamic simulation using bicycle model described in [1] page 20
 * Add path planning (cubic spline interpolation)
 * Add path tracking (MPC) // 2023.3.21
+* Format the code
+* Add MPC control for 4ws car (problem, need fix) // 2023.3.22
 
 
 ## References
