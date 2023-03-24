@@ -55,7 +55,7 @@ DU_TH = 0.1  # iteration finish param
 
 
 def pi_2_pi(angle):
-    return np.mod(angle + np.pi, 2*np.pi) - np.pi
+    return np.mod(angle + np.pi, 2 * np.pi) - np.pi
 
 
 class State:
@@ -89,7 +89,7 @@ def calc_beta(steer_front, steer_rear):
     )
 
 
-def calc_speed_profile(cx, cy, cyaw,ck, target_speed):
+def calc_speed_profile(cx, cy, cyaw, ck, target_speed):
 
     speed_profile = [target_speed] * len(cx)
     direction = 1.0  # forward
@@ -282,17 +282,15 @@ def get_nparray_from_matrix(x):
     return np.array(x).flatten()
 
 
-def get_linear_model_matrix(v, phi, steer_front, steer_rear):
+def get_linear_model_matrix(
+    v: float, yaw: float, steer_front: float, steer_rear: float, DT=DT
+):
     beta = calc_beta(steer_front, steer_rear)
-    A = np.zeros((NX, NX))
-    A[0, 0] = 1.0
-    A[1, 1] = 1.0
-    A[2, 2] = 1.0
-    A[3, 3] = 1.0
-    A[0, 2] = DT * math.cos(phi + beta)
-    A[0, 3] = -DT * v * math.sin(phi + beta)
-    A[1, 2] = DT * math.sin(phi + beta)
-    A[1, 3] = DT * v * math.cos(phi + beta)
+    A = np.identity(NX)
+    A[0, 2] = DT * math.cos(yaw + beta)
+    A[0, 3] = -DT * v * math.sin(yaw + beta)
+    A[1, 2] = DT * math.sin(yaw + beta)
+    A[1, 3] = DT * v * math.cos(yaw + beta)
     A[3, 2] = (
         DT * np.cos(beta) * (np.tan(steer_front) - np.tan(steer_rear)) / (l_r + l_f)
     )
@@ -303,8 +301,8 @@ def get_linear_model_matrix(v, phi, steer_front, steer_rear):
     B[3, 2] = -DT * v * np.cos(beta) / (l_r + l_f) / np.cos(steer_rear) ** 2
 
     C = np.zeros(NX)
-    C[0] = DT * v * math.sin(phi + beta) * phi
-    C[1] = -DT * v * math.cos(phi + beta) * phi
+    C[0] = DT * v * math.sin(yaw + beta) * yaw
+    C[1] = -DT * v * math.cos(yaw + beta) * yaw
     C[3] = (
         -DT
         * v
@@ -312,20 +310,21 @@ def get_linear_model_matrix(v, phi, steer_front, steer_rear):
         / (l_r + l_f)
         * (1 / np.cos(steer_front) ** 2 - 1 / np.cos(steer_rear) ** 2)
     )
-
     return A, B, C
 
-A=[cvxpy.Parameter((NX, NX)) for i in range(T)]
-B=[cvxpy.Parameter((NX, NU)) for i in range(T)]
-C=[cvxpy.Parameter(NX) for i in range(T)]
-xref=cvxpy.Parameter((NX, T+1))
-x0=cvxpy.Parameter(NX)
+
+A = [cvxpy.Parameter((NX, NX)) for i in range(T)]
+B = [cvxpy.Parameter((NX, NU)) for i in range(T)]
+C = [cvxpy.Parameter(NX) for i in range(T)]
+xref = cvxpy.Parameter((NX, T + 1))
+x0 = cvxpy.Parameter(NX)
 xx = cvxpy.Variable((NX, T + 1))
 u = cvxpy.Variable((NU, T))
 u_perterb = cvxpy.Variable((NU, T))
 
+
 def get_prob():
-    
+
     # add perterbation to avoid singular
     cost = 0.0
     constraints = []
@@ -354,15 +353,19 @@ def get_prob():
     constraints += [u_perterb == u + 1e-3 * np.random.randn(NU, T)]
     prob = cvxpy.Problem(cvxpy.Minimize(cost), constraints)
     return prob
-prob=get_prob()
+
+
+prob = get_prob()
+
+
 def linear_mpc_control_opt(xref1, xbar, x01, dref):
-    xref.value=xref1
-    x0.value=x01
+    xref.value = xref1
+    x0.value = x01
     for t in range(T):
         A[t].value, B[t].value, C[t].value = get_linear_model_matrix(
             xbar[2, t], xbar[3, t], dref[0, t], dref[1, t]
         )
-    prob.solve(solver=cvxpy.SCS, verbose=False,max_iters=100 )
+    prob.solve(solver=cvxpy.SCS, verbose=False, max_iters=100)
 
     if prob.status == cvxpy.OPTIMAL or prob.status == cvxpy.OPTIMAL_INACCURATE:
         ox = get_nparray_from_matrix(xx.value[0, :])
@@ -386,6 +389,7 @@ def linear_mpc_control_opt(xref1, xbar, x01, dref):
         )
 
     return oa, odelta_front, odelta_rear, ox, oy, oyaw, ov
+
 
 def iterative_linear_mpc_control(xref, x0, dref, oa, od_f, od_r):
     """
@@ -438,9 +442,9 @@ if __name__ == "__main__":
     cx, cy, cyaw, ck, s = get_path_course()
     # plt.plot(cx, cy, "-")
     # plt.show()
-    print(f'solver :{cvxpy.installed_solvers()}')
+    print(f"solver :{cvxpy.installed_solvers()}")
     state = State(x=0, y=0, yaw=cyaw[0], v=0.0)
-    sp = calc_speed_profile(cx, cy, cyaw,ck, TARGET_SPEED)
+    sp = calc_speed_profile(cx, cy, cyaw, ck, TARGET_SPEED)
     # plot speed profile
 
     goal = [cx[-1], cy[-1]]
@@ -466,11 +470,12 @@ if __name__ == "__main__":
     logger.info(f"target_ind:{target_ind}")
     odelta_f, odelta_r, oa = None, None, None
     import time
+
     cyaw = smooth_yaw(cyaw)
     dl = 1.0  # course tick
     while current_time < MAX_TIME:
         # get reference trajectory according to current velocity
-        start=time.time()
+        start = time.time()
         xref2, target_ind, dref = calc_ref_trajectory(
             state, cx, cy, cyaw, ck, sp, dl, target_ind
         )
@@ -483,8 +488,8 @@ if __name__ == "__main__":
         )
         if odelta_f is not None and odelta_r is not None and oa is not None:
             dfi, dri, ai = odelta_f[0], odelta_r[0], oa[0]
-        end=time.time()
-        print(f'elapsed time:{end-start}')
+        end = time.time()
+        print(f"elapsed time:{end-start}")
         # print(f"dfi:{dfi},dri:{dri},ai:{ai}")
         # input("Press Enter to continue...")
         state = update_state(state, ai, dfi, dri)

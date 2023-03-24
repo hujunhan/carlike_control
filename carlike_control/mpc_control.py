@@ -369,23 +369,19 @@ def iterative_linear_mpc_control(xref, x0, dref, oa, od):
 
 
 def check_goal(state, goal, tind, nind):
-
     # check goal
     dx = state.x - goal[0]
     dy = state.y - goal[1]
-    d = math.hypot(dx, dy)
+    d = np.hypot(dx, dy)
 
     isgoal = d <= GOAL_DIS
 
-    if abs(tind - nind) >= 5:
+    if np.abs(tind - nind) >= 5:
         isgoal = False
 
-    isstop = abs(state.v) <= STOP_SPEED
+    isstop = np.abs(state.v) <= STOP_SPEED
 
-    if isgoal and isstop:
-        return True
-
-    return False
+    return isgoal and isstop
 
 
 if __name__ == "__main__":

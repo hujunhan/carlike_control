@@ -5,6 +5,7 @@ from matplotlib.patches import Polygon
 
 from carlike_control.car import Car
 from carlike_control.wheel import Wheel
+from carlike_control.helper import transform_2d
 
 
 class Visualization:
@@ -34,7 +35,8 @@ class Visualization:
         Args:
             car (Car): input car
         """
-        world_points = np.dot(car.w_v_transform, car.body_points.T).T
+        w_v_transform = transform_2d(car.x, car.y, car.yaw)
+        world_points = np.dot(w_v_transform, car.body_points.T).T
         # print(f'body points in world frame: \n{world_points}')
         # Draw the car
         self.ax.add_patch(
@@ -42,13 +44,14 @@ class Visualization:
         )
         # Draw the wheels
         for wheel in car.wheels:
-            self.draw_wheel(wheel, car.w_v_transform)
+            self.draw_wheel(wheel, w_v_transform)
         pass
 
     def draw_wheel(self, wheel: Wheel, w_v_transform):
         ## Draw the wheel
         # Transform the points to the vehicle frame
-        vehicle_points = np.dot(wheel.v_c_transform, wheel.body_points.T).T
+        v_c_transform = transform_2d(wheel.x, wheel.y, wheel.yaw)
+        vehicle_points = np.dot(v_c_transform, wheel.body_points.T).T
         # Transform the points to the world frame
         world_points = np.dot(w_v_transform, vehicle_points.T).T
         # Draw the wheel
