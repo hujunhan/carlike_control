@@ -12,6 +12,9 @@ import cvxpy
 # set logger only show the time without date, remain the color
 import sys
 
+## define if animate the result
+ANIMATE = True
+
 logger.remove()
 logger.add(sys.stderr, format="{time:HH:mm:ss} {message}", colorize=True)
 NX = 4  # x = x, y, v, yaw
@@ -19,13 +22,13 @@ NU = 3  # a = [accel, steer_front, steer_rear]
 T = 5  # horizon length
 ## Parameters
 TARGET_SPEED = 3.6
-MAX_TIME = 20.0
+MAX_TIME = 40.0
 N_IND_SEARCH = 10  # Search index number
-DT = 0.2
+DT = 0.1  # time tick [s]
 MAX_STEER = np.deg2rad(45.0)  # maximum steering angle [rad]
 MAX_DSTEER = np.deg2rad(30.0)  # maximum steering speed [rad/s]
-MAX_SPEED = 55.0 / 3.6  # maximum speed [m/s]
-MIN_SPEED = -20.0 / 3.6  # minimum speed [m/s]
+MAX_SPEED = 10  # maximum speed [m/s]
+MIN_SPEED = -10  # minimum speed [m/s]
 MAX_ACCEL = 1.0  # maximum accel [m/ss]
 WB = 2.5  # [m]
 l_f = 1.2  # [m] # distance from front wheel to center of gravity
@@ -36,7 +39,7 @@ R = np.diag(
     [0.01, 0.01, 0.01],
 )  # input cost matrix for acc, steer_front, steer_rear
 Rd = np.diag(
-    [0.01, 1.0, 1.0],
+    [0.01, 2.0, 2.0],
 )  # input difference cost matrix for acc, steer_front, steer_rear
 
 
@@ -45,7 +48,7 @@ Q = np.diag([1.0, 1.0, 0.5, 0.5])  # state cost matrix
 ## convert R and Q from numpy array to list
 
 Qf = Q  # state final matrix
-GOAL_DIS = 1.5  # goal distance
+GOAL_DIS = 0.1  # goal distance
 STOP_SPEED = 0.5 / 3.6  # stop speed
 MAX_ITER = 3  # Max iteration
 DU_TH = 0.1  # iteration finish param
@@ -75,7 +78,7 @@ class State:
 
 
 # Path definition
-path = np.array([[0, 0], [10, 5], [20, 10], [30, 5], [40, 20]])
+path = np.array([[0, 0], [10, -5], [40, 25], [30, 0], [-10, 20]])
 
 
 def get_path_course(path=path):
@@ -436,7 +439,7 @@ def check_goal(state, goal, tind, nind):
 if __name__ == "__main__":
     logger.info(f"type of R:{type(R)}")
     cx, cy, cyaw, ck, s = get_path_course()
-    plt.plot(cx, cy, "-")
+    # plt.plot(cx, cy, "-")
     # plt.show()
 
     state = State(x=0, y=0, yaw=cyaw[0], v=0.0)
@@ -498,12 +501,29 @@ if __name__ == "__main__":
             print("Goal")
             break
 
-    ## plot the result ,x,y, yaw
-    down_sample = 2
-    x = np.array(x)[::down_sample]
-    y = np.array(y)[::down_sample]
-    yaw = np.array(yaw)[::down_sample]
-    plt.scatter(x, y, s=1)
-    plt.quiver(x, y, np.cos(yaw), np.sin(yaw), scale=20)
-    plt.gca().set_aspect("equal", adjustable="box")
-    plt.show()
+    N = len(x)
+    if ANIMATE:
+        from carlike_control.viz import Visualization
+        from carlike_control.car import Car
+        import time
+
+        viz = Visualization((-10, 50), (-10, 30))
+        plt.show(block=False)
+        car = Car(x[0], y[0], yaw[0])
+        for i in range(0, N):
+            viz.clear()
+            car.update_pose(x[i], y[i], yaw[i])
+            car.update_all_steer([df[i], df[i], dr[i], dr[i]])
+            viz.draw_car(car)
+            viz.draw_path(cx, cy)
+            plt.pause(0.05)
+    else:
+        ## plot the result ,x,y, yaw
+        down_sample = 2
+        x = np.array(x)[::down_sample]
+        y = np.array(y)[::down_sample]
+        yaw = np.array(yaw)[::down_sample]
+        plt.scatter(x, y, s=1)
+        plt.quiver(x, y, np.cos(yaw), np.sin(yaw), scale=20)
+        plt.gca().set_aspect("equal", adjustable="box")
+        plt.show()

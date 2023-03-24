@@ -17,7 +17,7 @@ class Wheel:
         self.v_c_transform = transform_2d(x, y, theta)
         for i in [-1, 1]:
             for j in [-1, 1]:
-                self.body_points.append([i * self.width / 2, j * self.radius, 1])
+                self.body_points.append([i * self.radius, j * self.width / 2, 1])
         self.body_points = np.array(self.body_points)
         self.update_transform(x, y, theta)
         pass

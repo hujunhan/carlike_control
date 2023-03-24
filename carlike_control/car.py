@@ -21,9 +21,9 @@ class Car:
             Wheel
         ] = []  ## List of wheels, left to right, front to back 0,1,2,3
         for j in [1, -1]:
-            for i in [-1, 1]:
-                self.wheels.append(Wheel(x=i * self.width / 2, y=j * self.length / 2))
-                self.body_points.append([i * self.width / 2, j * self.length / 2, 1])
+            for i in [1, -1]:
+                self.wheels.append(Wheel(x=j * self.length / 2, y=i * self.width / 2))
+                self.body_points.append([j * self.length / 2, i * self.width / 2, 1])
         self.update_all_steer([0, 0, 0, 0])  # set all wheels to 0 steer
         self.body_points = np.array(self.body_points)
         self.update_transform(x, y, theta)

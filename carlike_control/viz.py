@@ -16,10 +16,16 @@ class Visualization:
             ylim (tuple, optional): canvas limit y. Defaults to (-10,10).
         """
         self.fig, self.ax = plt.subplots()
+        self.xlim = xlim
+        self.ylim = ylim
         self.ax.set_xlim(xlim)
         self.ax.set_ylim(ylim)
         self.ax.set_aspect("equal")
         self.show_order_index = [0, 1, 3, 2]
+        pass
+
+    def draw_path(self, path_x, path_y):
+        self.ax.plot(path_x, path_y, "-", color="green")
         pass
 
     def draw_car(self, car: Car):
@@ -51,23 +57,24 @@ class Visualization:
 
     def show(self):
         ## Show the visualization
-        plt.show()
+        plt.ion()
         pass
 
     def clear(self):
         ## Clear the visualization
         self.ax.clear()
+        self.ax.set_xlim(self.xlim)
+        self.ax.set_ylim(self.ylim)
+        self.ax.set_aspect("equal")
         pass
 
 
 if __name__ == "__main__":
     viz = Visualization((-10, 10), (-10, 10))
     car = Car(x=5, y=5, theta=0, length=4, width=2)
-    car.update_all_steer([np.pi / 5, np.pi / 5, np.pi / 3, np.pi / 6])
+    car.update_all_steer([np.pi / 6, np.pi / 6, 0, 0])
     viz.draw_car(car)
-    # viz.show()
-
+    plt.show()
     car.update_pose(-3, 2, np.pi / 3)
     viz.draw_car(car)
     print("update car pose")
-    viz.show()

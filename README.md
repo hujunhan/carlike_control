@@ -31,6 +31,7 @@ TODO:
 * Format the code
 * Add MPC control for 4ws car (problem, need fix) // 2023.3.22
 * Fix the problem of MPC control for 4ws car (wrong B, C matrix) 
+* Add visualization for MPC control for 4ws car // 2023.3.23
 
 
 ## References
