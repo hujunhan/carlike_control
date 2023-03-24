@@ -9,13 +9,13 @@ from carlike_control.helper import transform_2d
 
 
 class Car:
-    def __init__(self, x=0, y=0, theta=0.0, length=4, width=2):
+    def __init__(self, x=0, y=0, yaw=0.0, length=4, width=2):
         self.x = x
         self.y = y
-        self.theta = theta
+        self.yaw = yaw
         self.length = length
         self.width = width
-        self.w_v_transform = transform_2d(x, y, theta)
+        self.w_v_transform = transform_2d(x, y, yaw)
         self.body_points = []
         self.wheels: List[
             Wheel
@@ -26,7 +26,7 @@ class Car:
                 self.body_points.append([j * self.length / 2, i * self.width / 2, 1])
         self.update_all_steer([0, 0, 0, 0])  # set all wheels to 0 steer
         self.body_points = np.array(self.body_points)
-        self.update_transform(x, y, theta)
+        self.update_transform(x, y, yaw)
 
     def update_transform(self, x, y, theta):
         """update the transform matrix from world to vehicle frame
@@ -61,7 +61,7 @@ class Car:
 
 if __name__ == "__main__":
 
-    car = Car(x=5, y=5, theta=0, length=4, width=2)
+    car = Car(x=5, y=5, yaw=0, length=4, width=2)
     print(f"body points in car frame: \n{car.body_points}")
 
     world_points = np.dot(car.w_v_transform, car.body_points.T).T

@@ -71,7 +71,7 @@ class Visualization:
 
 if __name__ == "__main__":
     viz = Visualization((-10, 10), (-10, 10))
-    car = Car(x=5, y=5, theta=0, length=4, width=2)
+    car = Car(x=5, y=5, yaw=0, length=4, width=2)
     car.update_all_steer([np.pi / 6, np.pi / 6, 0, 0])
     viz.draw_car(car)
     plt.show()

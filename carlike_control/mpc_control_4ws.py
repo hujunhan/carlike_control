@@ -22,7 +22,7 @@ NU = 3  # a = [accel, steer_front, steer_rear]
 T = 5  # horizon length
 ## Parameters
 TARGET_SPEED = 3.6
-MAX_TIME = 40.0
+MAX_TIME = 50.0
 N_IND_SEARCH = 10  # Search index number
 DT = 0.1  # time tick [s]
 MAX_STEER = np.deg2rad(45.0)  # maximum steering angle [rad]
@@ -55,13 +55,7 @@ DU_TH = 0.1  # iteration finish param
 
 
 def pi_2_pi(angle):
-    while angle > math.pi:
-        angle = angle - 2.0 * math.pi
-
-    while angle < -math.pi:
-        angle = angle + 2.0 * math.pi
-
-    return angle
+    return np.mod(angle + np.pi, 2*np.pi) - np.pi
 
 
 class State:
@@ -95,7 +89,7 @@ def calc_beta(steer_front, steer_rear):
     )
 
 
-def calc_speed_profile(cx, cy, cyaw, target_speed):
+def calc_speed_profile(cx, cy, cyaw,ck, target_speed):
 
     speed_profile = [target_speed] * len(cx)
     direction = 1.0  # forward
@@ -118,7 +112,10 @@ def calc_speed_profile(cx, cy, cyaw, target_speed):
             speed_profile[i] = -target_speed
         else:
             speed_profile[i] = target_speed
-
+    ## calculate the speed profile based on the curvature
+    # the speed should be lower when the curvature is higher
+    # for i in range(20,len(cx)):
+    #     speed_profile[i] = speed_profile[i] * (1 - ck[i-20])
     speed_profile[-1] = 0.0
 
     return speed_profile
@@ -318,20 +315,18 @@ def get_linear_model_matrix(v, phi, steer_front, steer_rear):
 
     return A, B, C
 
+A=[cvxpy.Parameter((NX, NX)) for i in range(T)]
+B=[cvxpy.Parameter((NX, NU)) for i in range(T)]
+C=[cvxpy.Parameter(NX) for i in range(T)]
+xref=cvxpy.Parameter((NX, T+1))
+x0=cvxpy.Parameter(NX)
+xx = cvxpy.Variable((NX, T + 1))
+u = cvxpy.Variable((NU, T))
+u_perterb = cvxpy.Variable((NU, T))
 
-def linear_mpc_control(xref, xbar, x0, dref):
-    """
-    linear mpc control
-    xref: reference point
-    xbar: operational point
-    x0: initial state
-    dref: reference steer angle
-    """
-
-    x = cvxpy.Variable((NX, T + 1))
-    u = cvxpy.Variable((NU, T))
+def get_prob():
+    
     # add perterbation to avoid singular
-    u_perterb = cvxpy.Variable((NU, T))
     cost = 0.0
     constraints = []
 
@@ -339,38 +334,41 @@ def linear_mpc_control(xref, xbar, x0, dref):
         cost += cvxpy.quad_form(u[:, t], R)
 
         if t != 0:
-            cost += cvxpy.quad_form(xref[:, t] - x[:, t], Q)
+            cost += cvxpy.quad_form(xref[:, t] - xx[:, t], Q)
 
-        A, B, C = get_linear_model_matrix(
-            xbar[2, t], xbar[3, t], dref[0, t], dref[1, t]
-        )
-        # print(f"A: \n{A}")
-        # print(f"B: \n{B}")
-        # print(f"C: \n{C}")
-        constraints += [x[:, t + 1] == A @ x[:, t] + B @ u[:, t] + C]
+        constraints += [xx[:, t + 1] == A[t] @ xx[:, t] + B[t] @ u[:, t] + C[t]]
 
         if t < (T - 1):
             cost += cvxpy.quad_form(u[:, t + 1] - u[:, t], Rd)
             constraints += [cvxpy.abs(u[1, t + 1] - u[1, t]) <= MAX_DSTEER * DT]
             constraints += [cvxpy.abs(u[2, t + 1] - u[2, t]) <= MAX_DSTEER * DT]
 
-    cost += cvxpy.quad_form(xref[:, T] - x[:, T], Qf)
+    cost += cvxpy.quad_form(xref[:, T] - xx[:, T], Qf)
 
-    constraints += [x[:, 0] == x0]
-    constraints += [x[2, :] <= MAX_SPEED]
-    constraints += [x[2, :] >= MIN_SPEED]
+    constraints += [xx[:, 0] == x0]
+    constraints += [xx[2, :] <= MAX_SPEED]
+    constraints += [xx[2, :] >= MIN_SPEED]
     constraints += [cvxpy.abs(u[0, :]) <= MAX_ACCEL]
     constraints += [cvxpy.abs(u[1, :]) <= MAX_STEER]
     constraints += [cvxpy.abs(u[2, :]) <= MAX_STEER]
     constraints += [u_perterb == u + 1e-3 * np.random.randn(NU, T)]
     prob = cvxpy.Problem(cvxpy.Minimize(cost), constraints)
-    prob.solve(solver=cvxpy.ECOS, verbose=False, abstol=1e-7)
+    return prob
+prob=get_prob()
+def linear_mpc_control_opt(xref1, xbar, x01, dref):
+    xref.value=xref1
+    x0.value=x01
+    for t in range(T):
+        A[t].value, B[t].value, C[t].value = get_linear_model_matrix(
+            xbar[2, t], xbar[3, t], dref[0, t], dref[1, t]
+        )
+    prob.solve(solver=cvxpy.SCS, verbose=False,max_iters=100 )
 
     if prob.status == cvxpy.OPTIMAL or prob.status == cvxpy.OPTIMAL_INACCURATE:
-        ox = get_nparray_from_matrix(x.value[0, :])
-        oy = get_nparray_from_matrix(x.value[1, :])
-        ov = get_nparray_from_matrix(x.value[2, :])
-        oyaw = get_nparray_from_matrix(x.value[3, :])
+        ox = get_nparray_from_matrix(xx.value[0, :])
+        oy = get_nparray_from_matrix(xx.value[1, :])
+        ov = get_nparray_from_matrix(xx.value[2, :])
+        oyaw = get_nparray_from_matrix(xx.value[3, :])
         oa = get_nparray_from_matrix(u.value[0, :])
         odelta_front = get_nparray_from_matrix(u_perterb.value[1, :])
         odelta_rear = get_nparray_from_matrix(u_perterb.value[2, :])
@@ -389,7 +387,6 @@ def linear_mpc_control(xref, xbar, x0, dref):
 
     return oa, odelta_front, odelta_rear, ox, oy, oyaw, ov
 
-
 def iterative_linear_mpc_control(xref, x0, dref, oa, od_f, od_r):
     """
     MPC contorl with updating operational point iteraitvely
@@ -404,7 +401,7 @@ def iterative_linear_mpc_control(xref, x0, dref, oa, od_f, od_r):
         xbar = predict_motion(x0, oa, od_f, od_r, xref)
         # print(f"iter:{i}, xbar:{xbar}")
         poa, pod_f, pod_r = oa[:], od_f[:], od_r[:]  # previous oa and od
-        oa, od_f, od_r, ox, oy, oyaw, ov = linear_mpc_control(xref, xbar, x0, dref)
+        oa, od_f, od_r, ox, oy, oyaw, ov = linear_mpc_control_opt(xref, xbar, x0, dref)
         du = (
             sum(abs(oa - poa)) + sum(abs(od_f - pod_f)) + sum(abs(od_r - pod_r))
         )  # calc u change value
@@ -441,9 +438,9 @@ if __name__ == "__main__":
     cx, cy, cyaw, ck, s = get_path_course()
     # plt.plot(cx, cy, "-")
     # plt.show()
-
+    print(f'solver :{cvxpy.installed_solvers()}')
     state = State(x=0, y=0, yaw=cyaw[0], v=0.0)
-    sp = calc_speed_profile(cx, cy, cyaw, TARGET_SPEED)
+    sp = calc_speed_profile(cx, cy, cyaw,ck, TARGET_SPEED)
     # plot speed profile
 
     goal = [cx[-1], cy[-1]]
@@ -468,24 +465,27 @@ if __name__ == "__main__":
     target_ind, _ = calc_nearest_index(state, cx, cy, cyaw, 0)
     logger.info(f"target_ind:{target_ind}")
     odelta_f, odelta_r, oa = None, None, None
-
+    import time
     cyaw = smooth_yaw(cyaw)
     dl = 1.0  # course tick
     while current_time < MAX_TIME:
         # get reference trajectory according to current velocity
-        xref, target_ind, dref = calc_ref_trajectory(
+        start=time.time()
+        xref2, target_ind, dref = calc_ref_trajectory(
             state, cx, cy, cyaw, ck, sp, dl, target_ind
         )
         # print(f"dref:{dref}")
-        x0 = [state.x, state.y, state.v, state.yaw]  # current state
+        x02 = [state.x, state.y, state.v, state.yaw]  # current state
         # print(f"x0:{x0}")
         # print(f"xref:{xref}")
         oa, odelta_f, odelta_r, ox, oy, oyaw, ov = iterative_linear_mpc_control(
-            xref, x0, dref, oa, odelta_f, odelta_r
+            xref2, x02, dref, oa, odelta_f, odelta_r
         )
         if odelta_f is not None and odelta_r is not None and oa is not None:
             dfi, dri, ai = odelta_f[0], odelta_r[0], oa[0]
-        print(f"dfi:{dfi},dri:{dri},ai:{ai}")
+        end=time.time()
+        print(f'elapsed time:{end-start}')
+        # print(f"dfi:{dfi},dri:{dri},ai:{ai}")
         # input("Press Enter to continue...")
         state = update_state(state, ai, dfi, dri)
         current_time += DT
@@ -516,7 +516,7 @@ if __name__ == "__main__":
             car.update_all_steer([df[i], df[i], dr[i], dr[i]])
             viz.draw_car(car)
             viz.draw_path(cx, cy)
-            plt.pause(0.05)
+            plt.pause(0.01)
     else:
         ## plot the result ,x,y, yaw
         down_sample = 2
