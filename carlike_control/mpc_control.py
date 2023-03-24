@@ -7,6 +7,7 @@ from scipy.optimize import minimize
 from carlike_control.path_planning import calc_spline_course
 import math
 from loguru import logger
+import cvxpy
 
 # set logger only show the time without date, remain the color
 import sys
@@ -296,7 +297,6 @@ def linear_mpc_control(xref, xbar, x0, dref):
     x0: initial state
     dref: reference steer angle
     """
-    import cvxpy
 
     x = cvxpy.Variable((NX, T + 1))
     u = cvxpy.Variable((NU, T))
@@ -311,6 +311,9 @@ def linear_mpc_control(xref, xbar, x0, dref):
             cost += cvxpy.quad_form(xref[:, t] - x[:, t], Q)
 
         A, B, C = get_linear_model_matrix(xbar[2, t], xbar[3, t], dref[0, t])
+        print(f"A: \n{A}")
+        print(f"B: \n{B}")
+        print(f"C: \n{C}")
         constraints += [x[:, t + 1] == A @ x[:, t] + B @ u[:, t] + C]
 
         if t < (T - 1):
@@ -391,7 +394,7 @@ if __name__ == "__main__":
     plt.plot(cx, cy, "-")
     # plt.show()
 
-    state = State(x=-10, y=-10, yaw=0, v=0.0)
+    state = State(x=0, y=0, yaw=cyaw[0], v=0.0)
     sp = calc_speed_profile(cx, cy, cyaw, TARGET_SPEED)
     # plot speed profile
 
@@ -426,7 +429,8 @@ if __name__ == "__main__":
         )
         print(f"dref:{dref}")
         x0 = [state.x, state.y, state.v, state.yaw]  # current state
-
+        print(f"x0:{x0}")
+        print(f"xref:{xref}")
         oa, odelta, ox, oy, oyaw, ov = iterative_linear_mpc_control(
             xref, x0, dref, oa, odelta
         )
@@ -448,7 +452,7 @@ if __name__ == "__main__":
             break
 
     ## plot the result ,x,y, yaw
-    down_sample = 10
+    down_sample = 2
     x = np.array(x)[::down_sample]
     y = np.array(y)[::down_sample]
     yaw = np.array(yaw)[::down_sample]

@@ -19,7 +19,7 @@ NU = 3  # a = [accel, steer_front, steer_rear]
 T = 5  # horizon length
 ## Parameters
 TARGET_SPEED = 3.6
-MAX_TIME = 10.0
+MAX_TIME = 20.0
 N_IND_SEARCH = 10  # Search index number
 DT = 0.2
 MAX_STEER = np.deg2rad(45.0)  # maximum steering angle [rad]
@@ -32,11 +32,15 @@ l_f = 1.2  # [m] # distance from front wheel to center of gravity
 l_r = 1.2  # [m] # distance from rear wheel to center of gravity
 # iterative paramter
 # mpc parameters
-R = np.diag([0.01, 0.005, 0.005])  # input cost matrix
-Rd = np.diag([0.01, 1.0, 1.0])
+R = np.diag(
+    [0.01, 0.01, 0.01],
+)  # input cost matrix for acc, steer_front, steer_rear
+Rd = np.diag(
+    [0.01, 1.0, 1.0],
+)  # input difference cost matrix for acc, steer_front, steer_rear
 
 
-Q = np.diag([5.0, 5.0, 0.5, 0.0])  # state cost matrix
+Q = np.diag([1.0, 1.0, 0.5, 0.5])  # state cost matrix
 
 ## convert R and Q from numpy array to list
 
@@ -296,7 +300,7 @@ def get_linear_model_matrix(v, phi, steer_front, steer_rear):
     B = np.zeros((NX, NU))
     B[2, 0] = DT
     B[3, 1] = DT * v * np.cos(beta) / (l_r + l_f) / np.cos(steer_front) ** 2
-    B[3, 2] = DT * v * np.cos(beta) / (l_r + l_f) / np.cos(steer_rear) ** 2
+    B[3, 2] = -DT * v * np.cos(beta) / (l_r + l_f) / np.cos(steer_rear) ** 2
 
     C = np.zeros(NX)
     C[0] = DT * v * math.sin(phi + beta) * phi
@@ -306,7 +310,7 @@ def get_linear_model_matrix(v, phi, steer_front, steer_rear):
         * v
         * np.cos(beta)
         / (l_r + l_f)
-        * (1 / np.cos(steer_front) ** 2 + 1 / np.cos(steer_rear) ** 2)
+        * (1 / np.cos(steer_front) ** 2 - 1 / np.cos(steer_rear) ** 2)
     )
 
     return A, B, C
@@ -323,7 +327,8 @@ def linear_mpc_control(xref, xbar, x0, dref):
 
     x = cvxpy.Variable((NX, T + 1))
     u = cvxpy.Variable((NU, T))
-
+    # add perterbation to avoid singular
+    u_perterb = cvxpy.Variable((NU, T))
     cost = 0.0
     constraints = []
 
@@ -336,6 +341,9 @@ def linear_mpc_control(xref, xbar, x0, dref):
         A, B, C = get_linear_model_matrix(
             xbar[2, t], xbar[3, t], dref[0, t], dref[1, t]
         )
+        # print(f"A: \n{A}")
+        # print(f"B: \n{B}")
+        # print(f"C: \n{C}")
         constraints += [x[:, t + 1] == A @ x[:, t] + B @ u[:, t] + C]
 
         if t < (T - 1):
@@ -351,8 +359,7 @@ def linear_mpc_control(xref, xbar, x0, dref):
     constraints += [cvxpy.abs(u[0, :]) <= MAX_ACCEL]
     constraints += [cvxpy.abs(u[1, :]) <= MAX_STEER]
     constraints += [cvxpy.abs(u[2, :]) <= MAX_STEER]
-    constraints += [cvxpy.abs(u[2, :]) <= 0.0001]
-
+    constraints += [u_perterb == u + 1e-3 * np.random.randn(NU, T)]
     prob = cvxpy.Problem(cvxpy.Minimize(cost), constraints)
     prob.solve(solver=cvxpy.ECOS, verbose=False, abstol=1e-7)
 
@@ -362,8 +369,8 @@ def linear_mpc_control(xref, xbar, x0, dref):
         ov = get_nparray_from_matrix(x.value[2, :])
         oyaw = get_nparray_from_matrix(x.value[3, :])
         oa = get_nparray_from_matrix(u.value[0, :])
-        odelta_front = get_nparray_from_matrix(u.value[1, :])
-        odelta_rear = get_nparray_from_matrix(u.value[2, :])
+        odelta_front = get_nparray_from_matrix(u_perterb.value[1, :])
+        odelta_rear = get_nparray_from_matrix(u_perterb.value[2, :])
 
     else:
         print("Error: Cannot solve mpc..")
@@ -392,6 +399,7 @@ def iterative_linear_mpc_control(xref, x0, dref, oa, od_f, od_r):
 
     for i in range(MAX_ITER):
         xbar = predict_motion(x0, oa, od_f, od_r, xref)
+        # print(f"iter:{i}, xbar:{xbar}")
         poa, pod_f, pod_r = oa[:], od_f[:], od_r[:]  # previous oa and od
         oa, od_f, od_r, ox, oy, oyaw, ov = linear_mpc_control(xref, xbar, x0, dref)
         du = (
@@ -465,16 +473,17 @@ if __name__ == "__main__":
         xref, target_ind, dref = calc_ref_trajectory(
             state, cx, cy, cyaw, ck, sp, dl, target_ind
         )
-        print(f"dref:{dref}")
+        # print(f"dref:{dref}")
         x0 = [state.x, state.y, state.v, state.yaw]  # current state
-
+        # print(f"x0:{x0}")
+        # print(f"xref:{xref}")
         oa, odelta_f, odelta_r, ox, oy, oyaw, ov = iterative_linear_mpc_control(
             xref, x0, dref, oa, odelta_f, odelta_r
         )
         if odelta_f is not None and odelta_r is not None and oa is not None:
             dfi, dri, ai = odelta_f[0], odelta_r[0], oa[0]
         print(f"dfi:{dfi},dri:{dri},ai:{ai}")
-        input("Press Enter to continue...")
+        # input("Press Enter to continue...")
         state = update_state(state, ai, dfi, dri)
         current_time += DT
         x.append(state.x)

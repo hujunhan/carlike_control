@@ -7,18 +7,18 @@ Control the car-like mobile robot
 
 TODO:
 
-- [ ] Add a description of the package
+- [x] Add a description of the package
 - [x] Add Wheel class
   - width
   - radius
-- [ ] More on Car class
-  - [ ] steer limit
+- [x] More on Car class
+  - [x] steer limit
   - [x] add wheels
-- [ ] Add a Visualization class
+- [x] Add a Visualization class
   - [x] Add a method to draw a car with wheels
-  - [ ] Add a method to draw a path
-- [ ] Add dynamic simulation
-  - [ ] Add a method to simulate the car
+  - [x] Add a method to draw a path
+- [x] Add dynamic simulation
+  - [x] Add a method to simulate the car
   - [ ] Understand how to calculate the car's velocity
 
 ## Changelog
@@ -30,6 +30,7 @@ TODO:
 * Add path tracking (MPC) // 2023.3.21
 * Format the code
 * Add MPC control for 4ws car (problem, need fix) // 2023.3.22
+* Fix the problem of MPC control for 4ws car (wrong B, C matrix) 
 
 
 ## References
