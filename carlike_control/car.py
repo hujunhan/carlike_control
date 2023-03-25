@@ -14,6 +14,8 @@ class Car:
         ## shape of the car
         self.length = length
         self.width = width
+        self.l_f = 1.2
+        self.l_r = 1.2
 
         ## state of the car
         self.NX: int = 4
@@ -28,6 +30,12 @@ class Car:
         self.steer_rear: float = 0
         self.accel: float = 0
 
+        ## limit of the car
+        self.MAX_STEER = np.deg2rad(45.0)  # maximum steering angle [rad]
+        self.MAX_DSTEER = np.deg2rad(30.0)  # maximum steering speed [rad/s]
+        self.MAX_SPEED = 10  # maximum speed [m/s]
+        self.MIN_SPEED = -10  # minimum speed [m/s]
+        self.MAX_ACCEL = 1.0  # maximum accel [m/ss]
         # for simulation
         self.body_points = []
         self.wheels: List[
@@ -47,46 +55,35 @@ class Car:
     def update_pose(self, x, y, theta):
         self.x, self.y, self.yaw = x, y, theta
 
-    @staticmethod
-    def calc_beta(steer_front, steer_rear, l_f, l_r):
-        return math.atan2(
-            (l_f * np.tan(steer_rear) + l_r * np.tan(steer_front)), (l_f + l_r)
-        )
+    def update_state(self, a, steer_front, steer_rear, DT=0.1):
+        self.accel = a
 
-    @staticmethod
-    def get_linear_model_matrix(
-        v: float,
-        yaw: float,
-        steer_front: float,
-        steer_rear: float,
-        DT=0.1,
-    ):
-        beta = Car.calc_beta(steer_front, steer_rear)
-        A = np.identity(4)
-        A[0, 2] = DT * math.cos(yaw + beta)
-        A[0, 3] = -DT * v * math.sin(yaw + beta)
-        A[1, 2] = DT * math.sin(yaw + beta)
-        A[1, 3] = DT * v * math.cos(yaw + beta)
-        A[3, 2] = (
-            DT * np.cos(beta) * (np.tan(steer_front) - np.tan(steer_rear)) / (l_r + l_f)
-        )
-
-        B = np.zeros((4, 2))
-        B[2, 0] = DT
-        B[3, 1] = DT * v * np.cos(beta) / (l_r + l_f) / np.cos(steer_front) ** 2
-        B[3, 2] = -DT * v * np.cos(beta) / (l_r + l_f) / np.cos(steer_rear) ** 2
-
-        C = np.zeros(4)
-        C[0] = DT * v * math.sin(yaw + beta) * yaw
-        C[1] = -DT * v * math.cos(yaw + beta) * yaw
-        C[3] = (
-            -DT
-            * v
+        steer_rear = np.clip(steer_rear, -self.MAX_STEER, self.MAX_STEER)
+        steer_front = np.clip(steer_front, -self.MAX_STEER, self.MAX_STEER)
+        self.steer_front = steer_front
+        self.steer_rear = steer_rear
+        beta = self.calc_beta(steer_front, steer_rear)
+        self.x = self.x + self.v * math.cos(self.yaw + beta) * DT
+        self.y = self.y + self.v * math.sin(self.yaw + beta) * DT
+        self.yaw = (
+            self.yaw
+            + self.v
             * np.cos(beta)
-            / (l_r + l_f)
-            * (1 / np.cos(steer_front) ** 2 - 1 / np.cos(steer_rear) ** 2)
+            * (np.tan(steer_front) - np.tan(steer_rear))
+            / (self.l_r + self.l_f)
+            * DT
         )
-        return A, B, C
+        self.v = self.v + a * DT
+
+        self.v = np.clip(self.v, self.MIN_SPEED, self.MAX_SPEED)
+
+        # return self
+
+    def calc_beta(self, steer_front, steer_rear):
+        return math.atan2(
+            (self.l_f * np.tan(steer_rear) + self.l_r * np.tan(steer_front)),
+            (self.l_f + self.l_r),
+        )
 
 
 if __name__ == "__main__":

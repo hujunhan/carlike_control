@@ -50,7 +50,7 @@ Q = np.diag([1.0, 1.0, 0.5, 0.5])  # state cost matrix
 Qf = Q  # state final matrix
 GOAL_DIS = 0.1  # goal distance
 STOP_SPEED = 0.5 / 3.6  # stop speed
-MAX_ITER = 3  # Max iteration
+MAX_ITER = 1  # Max iteration
 DU_TH = 0.1  # iteration finish param
 
 
@@ -231,7 +231,6 @@ def calc_ref_trajectory(state, cx, cy, cyaw, ck, sp, dl, pind):
 
 def update_state(state: State, a, steer_front, steer_rear):
     """update the state of the vehicle according to the math model
-
     Args:
         state (State): _description_
         a (_type_): _description_
@@ -262,8 +261,8 @@ def update_state(state: State, a, steer_front, steer_rear):
     return state
 
 
-def predict_motion(x0, oa, od_f, od_r, xref):
-    xbar = xref * 0.0
+def predict_motion(x0, oa, od_f, od_r):
+    xbar = np.zeros((NX, T + 1))
     for i, _ in enumerate(x0):
         xbar[i, 0] = x0[i]
 
@@ -361,10 +360,13 @@ prob = get_prob()
 def linear_mpc_control_opt(xref1, xbar, x01, dref):
     xref.value = xref1
     x0.value = x01
+    # print(f"x0: {x0.value}")
     for t in range(T):
         A[t].value, B[t].value, C[t].value = get_linear_model_matrix(
-            xbar[2, t], xbar[3, t], dref[0, t], dref[1, t]
+            xbar[2, t], xbar[3, t], 0, 0
         )
+        # print(f"B[{t}].value = \n{B[t].value}")
+
     prob.solve(solver=cvxpy.SCS, verbose=False, max_iters=100)
 
     if prob.status == cvxpy.OPTIMAL or prob.status == cvxpy.OPTIMAL_INACCURATE:
@@ -372,7 +374,7 @@ def linear_mpc_control_opt(xref1, xbar, x01, dref):
         oy = get_nparray_from_matrix(xx.value[1, :])
         ov = get_nparray_from_matrix(xx.value[2, :])
         oyaw = get_nparray_from_matrix(xx.value[3, :])
-        oa = get_nparray_from_matrix(u.value[0, :])
+        oa = get_nparray_from_matrix(u_perterb.value[0, :])
         odelta_front = get_nparray_from_matrix(u_perterb.value[1, :])
         odelta_rear = get_nparray_from_matrix(u_perterb.value[2, :])
 
@@ -402,17 +404,14 @@ def iterative_linear_mpc_control(xref, x0, dref, oa, od_f, od_r):
         od_r = [0.0] * T
 
     for i in range(MAX_ITER):
-        xbar = predict_motion(x0, oa, od_f, od_r, xref)
+        xbar = predict_motion(x0, oa, od_f, od_r)
         # print(f"iter:{i}, xbar:{xbar}")
-        poa, pod_f, pod_r = oa[:], od_f[:], od_r[:]  # previous oa and od
+        # print(f"xbar:\n{xbar}")
         oa, od_f, od_r, ox, oy, oyaw, ov = linear_mpc_control_opt(xref, xbar, x0, dref)
-        du = (
-            sum(abs(oa - poa)) + sum(abs(od_f - pod_f)) + sum(abs(od_r - pod_r))
-        )  # calc u change value
-        if du <= DU_TH:
-            break
-    else:
-        print("Iterative is max iter")
+        # if du <= DU_TH:
+        #     break
+        # else:
+        #     print("Iterative is max iter")
 
     return oa, od_f, od_r, ox, oy, oyaw, ov
 
@@ -443,7 +442,7 @@ if __name__ == "__main__":
     # plt.plot(cx, cy, "-")
     # plt.show()
     print(f"solver :{cvxpy.installed_solvers()}")
-    state = State(x=0, y=0, yaw=cyaw[0], v=0.0)
+    state = State(x=0, y=0, yaw=0, v=0.0)
     sp = calc_speed_profile(cx, cy, cyaw, ck, TARGET_SPEED)
     # plot speed profile
 
@@ -479,17 +478,21 @@ if __name__ == "__main__":
         xref2, target_ind, dref = calc_ref_trajectory(
             state, cx, cy, cyaw, ck, sp, dl, target_ind
         )
-        # print(f"dref:{dref}")
+        # print(f"xref2:{xref2}")
         x02 = [state.x, state.y, state.v, state.yaw]  # current state
-        # print(f"x0:{x0}")
+        print(f"x0:{x02}")
         # print(f"xref:{xref}")
         oa, odelta_f, odelta_r, ox, oy, oyaw, ov = iterative_linear_mpc_control(
             xref2, x02, dref, oa, odelta_f, odelta_r
         )
         if odelta_f is not None and odelta_r is not None and oa is not None:
             dfi, dri, ai = odelta_f[0], odelta_r[0], oa[0]
+        print(f"dfi:{dfi},dri:{dri},ai:{ai}")
+        # a = input("Press Enter to continue...")
+        if current_time > 10 * DT:
+            a = input("Press Enter to continue...")
         end = time.time()
-        print(f"elapsed time:{end-start}")
+        # print(f"elapsed time:{end-start}")
         # print(f"dfi:{dfi},dri:{dri},ai:{ai}")
         # input("Press Enter to continue...")
         state = update_state(state, ai, dfi, dri)
