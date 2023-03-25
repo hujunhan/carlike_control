@@ -53,8 +53,9 @@ def calc_speed_profile(cx, cy, cyaw, ck, target_speed):
             speed_profile[i] = target_speed
     ## calculate the speed profile based on the curvature
     # the speed should be lower when the curvature is higher
-    # for i in range(20,len(cx)):
-    #     speed_profile[i] = speed_profile[i] * (1 - ck[i-20])
+    for i in range(0, len(cx)):
+        if abs(ck[i]) > 1.0:
+            speed_profile[i] /= abs(ck[i])
     speed_profile[-1] = 0.0
 
     return speed_profile
@@ -227,4 +228,5 @@ if __name__ == "__main__":
             )
             viz.draw_car(car)
             viz.draw_path(cx, cy)
+            viz.ax.set_title(f"speed:{record_state[i][2]:.2f}m/s")
             plt.pause(0.01)

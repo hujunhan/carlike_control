@@ -35,7 +35,7 @@ class Car:
         self.MAX_DSTEER = np.deg2rad(30.0)  # maximum steering speed [rad/s]
         self.MAX_SPEED = 10  # maximum speed [m/s]
         self.MIN_SPEED = -10  # minimum speed [m/s]
-        self.MAX_ACCEL = 1.0  # maximum accel [m/ss]
+        self.MAX_ACCEL = 5.0  # maximum accel [m/ss]
         # for simulation
         self.body_points = []
         self.wheels: List[

@@ -59,7 +59,7 @@ class MPC:
                 self.B[t].value,
                 self.C[t].value,
             ) = self.get_linear_model_matrix(xpred[2, t], xpred[3, t], 0, 0)
-        self.problem.solve(solver=cvxpy.SCS, verbose=False, max_iters=100)
+        self.problem.solve(solver=cvxpy.SCS, verbose=False, max_iters=1000)
         if (
             self.problem.status == cvxpy.OPTIMAL
             or self.problem.status == cvxpy.OPTIMAL_INACCURATE
