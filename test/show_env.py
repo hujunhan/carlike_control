@@ -1,0 +1,16 @@
+import numpy as np
+from carlike_control.env import Environment, Obstacle
+from carlike_control.viz import Visualization
+from matplotlib import pyplot as plt
+
+np.random.seed(0)
+WIDTH = 100
+HEIGHT = 100
+OBSTACLE_NUM = 10
+env = Environment(WIDTH, HEIGHT, OBSTACLE_NUM)
+
+viz = Visualization((-10, WIDTH + 10), (-10, HEIGHT + 10))
+
+viz.draw_env(env)
+
+plt.show()

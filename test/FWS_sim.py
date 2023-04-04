@@ -6,6 +6,8 @@ from carlike_control.path_planning import calc_spline_course
 import math
 import matplotlib.pyplot as plt
 
+ANIMATE = True
+
 ## Parameters
 TARGET_SPEED = 3.6
 MAX_TIME = 50.0
@@ -158,6 +160,13 @@ def calc_ref_trajectory(state: Car, cx, cy, cyaw, ck, sp, dl, pind):
 
 
 if __name__ == "__main__":
+    ## Visualization
+    from carlike_control.viz import Visualization
+    from carlike_control.car import Car
+    import time
+
+    viz = Visualization((-10, 50), (-10, 30))
+    plt.show(block=False)
     ## Path
     cx, cy, cyaw, ck, s = get_path_course()
     sp = calc_speed_profile(cx, cy, cyaw, ck, TARGET_SPEED)
@@ -192,41 +201,14 @@ if __name__ == "__main__":
         end = time.time()
         print(f"elapsed time:{end-start}")
         car.update_state(u[0], u[1], u[2])
+        car.update_all_steer([u[1], u[1], u[2], u[2]])
         current_time += DT
         record_state.append(
             [car.x, car.y, car.v, car.yaw, car.steer_front, car.steer_rear]
         )
-    ANIMATE = True
-    N = len(record_state)
-    if ANIMATE:
-        from carlike_control.viz import Visualization
-        from carlike_control.car import Car
-        import time
-
-        viz = Visualization((-10, 50), (-10, 30))
-        plt.show(block=False)
-        car = Car(
-            record_state[0][0],
-            record_state[0][1],
-            record_state[0][3],
-            record_state[0][2],
-        )
-        for i in range(0, N):
+        if ANIMATE:
             viz.clear()
-            car.update_pose(
-                record_state[i][0],
-                record_state[i][1],
-                record_state[i][3],
-            )
-            car.update_all_steer(
-                [
-                    record_state[i][4],
-                    record_state[i][4],
-                    record_state[i][5],
-                    record_state[i][5],
-                ]
-            )
             viz.draw_car(car)
             viz.draw_path(cx, cy)
-            viz.ax.set_title(f"speed:{record_state[i][2]:.2f}m/s")
-            plt.pause(0.01)
+            viz.ax.set_title(f"speed:{car.v:.2f}m/s")
+            plt.pause(0.001)

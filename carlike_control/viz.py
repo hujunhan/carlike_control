@@ -1,11 +1,12 @@
 # Visualization class for carlike_control
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import Polygon
+from matplotlib.patches import Polygon, Rectangle, Circle
 
 from carlike_control.car import Car
 from carlike_control.wheel import Wheel
 from carlike_control.helper import transform_2d
+from carlike_control.env import Environment, Obstacle
 
 
 class Visualization:
@@ -58,11 +59,6 @@ class Visualization:
         self.ax.add_patch(Polygon(world_points[self.show_order_index, :2], color="red"))
         pass
 
-    def show(self):
-        ## Show the visualization
-        plt.ion()
-        pass
-
     def clear(self):
         ## Clear the visualization
         self.ax.clear()
@@ -71,13 +67,46 @@ class Visualization:
         self.ax.set_aspect("equal")
         pass
 
+    def draw_env(self, env: Environment):
+        for obstacle in env.obstacles:
+            self.draw_obstacle(obstacle)
+        self.draw_boundary(env)
+
+    def draw_obstacle(self, obstacle: Obstacle):
+        if obstacle.shape == "rectangle":
+            self.ax.add_patch(
+                Rectangle(
+                    (obstacle.x - obstacle.width / 2, obstacle.y - obstacle.height / 2),
+                    obstacle.width,
+                    obstacle.height,
+                    color="black",
+                )
+            )
+        elif obstacle.shape == "circle":
+            self.ax.add_patch(
+                Circle((obstacle.x, obstacle.y), obstacle.radius, color="black")
+            )
+        pass
+
+    def draw_boundary(self, env: Environment):
+        self.ax.add_patch(
+            Rectangle(
+                (0, 0),
+                env.width,
+                env.height,
+                color="black",
+                fill=False,
+            )
+        )
+        pass
+
 
 if __name__ == "__main__":
-    viz = Visualization((-10, 10), (-10, 10))
+    viz = Visualization((0, 10), (0, 10))
     car = Car(x=5, y=5, yaw=0, length=4, width=2)
     car.update_all_steer([np.pi / 6, np.pi / 6, 0, 0])
     viz.draw_car(car)
     plt.show()
-    car.update_pose(-3, 2, np.pi / 3)
+    car.update_pose(3, 2, np.pi / 3)
     viz.draw_car(car)
     print("update car pose")
