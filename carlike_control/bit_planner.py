@@ -4,8 +4,9 @@ import random
 import numpy as np
 from scipy.spatial.transform import Rotation as Rot
 from carlike_control.env import Environment
+from loguru import logger as log
 
-random.seed(0)
+log.remove()
 
 
 class Node:
@@ -17,12 +18,12 @@ class Node:
 
 class Tree:
     def __init__(self, x_start, x_goal):
-        self.x_start = x_start
-        self.goal = x_goal
+        self.x_start = x_start  # start node
+        self.goal = x_goal  # end node
 
         self.r = 4.0
-        self.V = set()
-        self.E = set()
+        self.V = set()  # vertices of RGG
+        self.E = set()  # edges of RGG
         self.QE = set()  # queue of edges of RGG
         self.QV = set()  # queue of vertices of RGG
 
@@ -35,19 +36,19 @@ class BITStar:
         self.x_goal = Node(x_goal[0], x_goal[1])
         self.eta = eta
         self.iter_max = iter_max
-
+        self.path_history = []
         self.env = env
 
         self.delta = self.env.delta
-        self.x_range = [0, self.env.width]
-        self.y_range = [0, self.env.height]
+        self.x_range = [0.0, self.env.width]
+        self.y_range = [0.0, self.env.height]
 
-        self.Tree = Tree(self.x_start, self.x_goal)
+        self.Tree = Tree(self.x_start, self.x_goal)  # RGG tree
         self.X_sample = set()
-        self.g_T = dict()
+        self.g_T = dict()  # upper bound of cost-to-come
 
     def init(self):
-        self.Tree.V.add(self.x_start)
+        self.Tree.V.add(self.x_start)  # the tree is grown from the start node
         self.X_sample.add(self.x_goal)
 
         self.g_T[self.x_start] = 0.0
@@ -69,15 +70,24 @@ class BITStar:
         theta, cMin, xCenter, C = self.init()
 
         for k in range(self.iter_max):
-            print(k)
+            # if k % 100 == 0:
+            #     log.debug(f"iteration: {k}")
+            #     plt.cla()
+            #     for v, w in self.Tree.E:
+            #         plt.plot([v.x, w.x], [v.y, w.y], "-g")
+            #     plt.show()
+            # log.debug(f"k, QV size: {k}, {len(self.Tree.QV)}")
             if not self.Tree.QE and not self.Tree.QV:
                 if k == 0:
-                    m = 350
+                    m = self.x_range[1] * self.y_range[1] / 5
                 else:
-                    m = 200
+                    m = self.x_range[1] * self.y_range[1] / 10
 
                 if self.x_goal.parent is not None:
+                    print(f"goal reached")
                     path_x, path_y = self.ExtractPath()
+                    # print(f"path_x: {path_x}, path_y: {path_y}")
+                    # self.path_history.append((path_x, path_y))
 
                 self.Prune(self.g_T[self.x_goal])
                 self.X_sample.update(
@@ -90,8 +100,6 @@ class BITStar:
             count = 0
             while self.BestVertexQueueValue() <= self.BestEdgeQueueValue():
                 result = self.BestInVertexQueue()
-
-                count += 1
                 self.ExpandVertex(result)
 
             vm, xm = self.BestInEdgeQueue()
@@ -101,14 +109,18 @@ class BITStar:
                 self.g_T[vm] + self.calc_dist(vm, xm) + self.h_estimated(xm)
                 < self.g_T[self.x_goal]
             ):
+                log.debug(f"first condition")
                 actual_cost = self.cost(vm, xm)
                 if (
                     self.g_estimated(vm) + actual_cost + self.h_estimated(xm)
                     < self.g_T[self.x_goal]
                 ):
+                    log.debug(f"second condition")
                     if self.g_T[vm] + actual_cost < self.g_T[xm]:
+                        log.debug(f"third condition")
                         if xm in self.Tree.V:
                             # remove edges
+                            log.debug(f"remove edge")
                             edge_delete = set()
                             for v, x in self.Tree.E:
                                 if x == xm:
@@ -117,7 +129,7 @@ class BITStar:
                             for edge in edge_delete:
                                 self.Tree.E.remove(edge)
                         else:
-                            # print(f"add {xm.x}, {xm.y}")
+                            log.debug(f"add {xm.x}, {xm.y}")
                             self.X_sample.remove(xm)
                             self.Tree.V.add(xm)
                             self.Tree.QV.add(xm)
@@ -144,6 +156,7 @@ class BITStar:
             #     self.animation(xCenter, self.g_T[self.x_goal], cMin, theta)
 
         path_x, path_y = self.ExtractPath()
+        return path_x, path_y
 
     def ExtractPath(self):
         node = self.x_goal
@@ -169,7 +182,7 @@ class BITStar:
 
     def cost(self, start, end):
         if self.env.is_cross_obstacle(start.x, start.y, end.x, end.y):
-            print(f"cross obstacle")
+            log.debug(f"cross obstacle")
             return np.inf
 
         return self.calc_dist(start, end)
@@ -212,7 +225,10 @@ class BITStar:
             if not in_obs and in_x_range and in_y_range:
                 Sample.add(node)
                 ind += 1
-
+        # plot the sampled points
+        # log.debug(f"sampleEllipsoid: {len(Sample)}")
+        # plt.scatter([node.x for node in Sample], [node.y for node in Sample], s=1)
+        # plt.show()
         return Sample
 
     def SampleFreeSpace(self, m):
@@ -230,7 +246,9 @@ class BITStar:
             else:
                 Sample.add(node)
                 ind += 1
-
+        # plot the sampled points
+        # plt.scatter([node.x for node in Sample], [node.y for node in Sample], s=1)
+        # plt.show()
         return Sample
 
     def radius(self, q):
@@ -241,10 +259,6 @@ class BITStar:
         return radius
 
     def ExpandVertex(self, v):
-        QV_list = list(self.Tree.QV)
-        print(f"QV[0].x,y: {QV_list[0].x, QV_list[0].y}")
-        print(f"v: {v.x, v.y}")
-
         self.Tree.QV.remove(v)
         X_near = {x for x in self.X_sample if self.calc_dist(x, v) <= self.Tree.r}
 
@@ -272,12 +286,14 @@ class BITStar:
 
     def BestVertexQueueValue(self):
         if not self.Tree.QV:
+            log.error(f"QV is Empty! in BestVertexQueueValue")
             return np.inf
 
         return min(self.g_T[v] + self.h_estimated(v) for v in self.Tree.QV)
 
     def BestEdgeQueueValue(self):
         if not self.Tree.QE:
+            log.error(f"QE is Empty! in BestEdgeQueueValue")
             return np.inf
 
         return min(
@@ -287,7 +303,7 @@ class BITStar:
 
     def BestInVertexQueue(self):
         if not self.Tree.QV:
-            print("QV is Empty!")
+            log.error("QV is Empty! in BestInVertexQueue")
             return None
 
         v_value = {v: self.g_T[v] + self.h_estimated(v) for v in self.Tree.QV}
@@ -296,7 +312,7 @@ class BITStar:
 
     def BestInEdgeQueue(self):
         if not self.Tree.QE:
-            print("QE is Empty!")
+            log.error("QE is Empty! in BestInEdgeQueue")
             return None
 
         e_value = {
@@ -340,17 +356,32 @@ if __name__ == "__main__":
     from carlike_control.viz import Visualization
     import matplotlib.pyplot as plt
 
-    np.random.seed(0)
-    viz = Visualization((-10, 110), (-10, 110))
+    random.seed(1)
 
-    x_start = (5, 5)  # Starting node
-    x_goal = (90, 90)  # Goal node
+    np.random.seed(1)
+    WIDTH = 90
+    HEIGHT = 90
+    viz = Visualization((-10, WIDTH + 10), (-10, HEIGHT + 10))
+
+    x_start = (6, 86)  # Starting node
+    x_goal = (80, 26)  # Goal node
     eta = 2
     iter_max = 500
-    print("start!!!")
-    env = Environment(100, 100, 0)
+    log.debug("start!!!")
+
+    env = Environment(WIDTH, HEIGHT, 50)
+    while env.is_in_obstacle(x_start[0], x_start[1]):
+        x_start = (random.uniform(0, WIDTH), random.uniform(0, HEIGHT))
+    while env.is_in_obstacle(x_goal[0], x_goal[1]):
+        x_goal = (random.uniform(0, WIDTH), random.uniform(0, HEIGHT))
+    log.debug(f"x_start: {x_start}")
+    log.debug(f"x_goal: {x_goal}")
+    # env.add_obstacle(10, 6, "rectangle")
     viz.draw_env(env)
-    plt.show()
+
     bit = BITStar(env, x_start, x_goal, eta, iter_max)
     # bit.animation("Batch Informed Trees (BIT*)")
-    bit.planning()
+    path_x, path_y = bit.planning()
+
+    viz.draw_path(path_x, path_y)
+    plt.show()

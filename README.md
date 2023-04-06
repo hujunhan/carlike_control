@@ -36,6 +36,7 @@ TODO:
 * Add MPC controller class, add MPC control for 4ws car // 2023.3.24
 * Add Environment class, prepare for the simulation of the car in the environment // 2023.4.4
 * Add Environment collision detection, and BIT path planning (need fix) // 2023.4.5
+* Fix BIT (enlarge the sample size) // 2023.4.5
 
 
 ## References
