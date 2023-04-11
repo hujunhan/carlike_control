@@ -37,6 +37,7 @@ TODO:
 * Add Environment class, prepare for the simulation of the car in the environment // 2023.4.4
 * Add Environment collision detection, and BIT path planning (need fix) // 2023.4.5
 * Fix BIT (enlarge the sample size) // 2023.4.5
+* Update four wheels steer according to bycicle model // 2023.4.10
 
 
 ## References

@@ -31,7 +31,6 @@ def get_path_course(path=path):
 
 
 def calc_speed_profile(cx, cy, cyaw, ck, target_speed):
-
     speed_profile = [target_speed] * len(cx)
     direction = 1.0  # forward
 
@@ -98,7 +97,6 @@ def calc_nearest_index(state: Car, cx, cy, cyaw, pind):
 
 
 def smooth_yaw(yaw):
-
     for i in range(len(yaw) - 1):
         dyaw = yaw[i + 1] - yaw[i]
 
@@ -165,8 +163,9 @@ if __name__ == "__main__":
     from carlike_control.car import Car
     import time
 
-    viz = Visualization((-10, 50), (-10, 30))
-    plt.show(block=False)
+    if ANIMATE:
+        viz = Visualization((-10, 50), (-10, 30))
+        plt.show(block=False)
     ## Path
     cx, cy, cyaw, ck, s = get_path_course()
     sp = calc_speed_profile(cx, cy, cyaw, ck, TARGET_SPEED)
@@ -189,6 +188,7 @@ if __name__ == "__main__":
     record_state = []
     cyaw = smooth_yaw(cyaw)
     dl = 1.0  # course tick
+    steer_history = []
     while current_time < MAX_TIME:
         # get reference trajectory according to current velocity
         start = time.time()
@@ -201,14 +201,23 @@ if __name__ == "__main__":
         end = time.time()
         print(f"elapsed time:{end-start}")
         car.update_state(u[0], u[1], u[2])
-        car.update_all_steer([u[1], u[1], u[2], u[2]])
+        # car.update_all_steer([u[1], u[1], u[2], u[2]])
+        car.update_all_steer_simple(u[1])
         current_time += DT
         record_state.append(
             [car.x, car.y, car.v, car.yaw, car.steer_front, car.steer_rear]
         )
+        steer_history.append([car.steer_front, car.steer_rear])
         if ANIMATE:
             viz.clear()
             viz.draw_car(car)
             viz.draw_path(cx, cy)
             viz.ax.set_title(f"speed:{car.v:.2f}m/s")
-            plt.pause(0.001)
+            plt.pause(0.1)
+
+    # plot the steer history
+    steer_history = np.array(steer_history)
+    plt.plot(range(len(steer_history)), steer_history[:, 0], label="front")
+    plt.plot(range(len(steer_history)), steer_history[:, 1], label="rear")
+    plt.legend()
+    plt.show()

@@ -52,6 +52,23 @@ class Car:
         for i in range(len(self.wheels)):
             self.wheels[i].update_steer(theta_list[i])
 
+    def update_all_steer_simple(self, front_steer):
+        sign = np.sign(front_steer)
+        beta = np.abs(front_steer)
+        L = (self.l_f + self.l_r) / 2
+        x = L / np.tan(beta)
+        large_angle = np.arctan2(L, x - self.width / 2)
+        small_angle = np.arctan2(L, x + self.width / 2)
+        print(f"large_angle: {large_angle}, small_angle: {small_angle}")
+        if sign == -1:
+            self.update_all_steer(
+                [-small_angle, -large_angle, small_angle, large_angle]
+            )
+        else:
+            self.update_all_steer(
+                [large_angle, small_angle, -large_angle, -small_angle]
+            )
+
     def update_pose(self, x, y, theta):
         self.x, self.y, self.yaw = x, y, theta
 
@@ -87,7 +104,6 @@ class Car:
 
 
 if __name__ == "__main__":
-
     car = Car(x=5, y=5, yaw=0, length=4, width=2)
     print(f"body points in car frame: \n{car.body_points}")
 
