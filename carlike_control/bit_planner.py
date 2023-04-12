@@ -66,25 +66,33 @@ class BITStar:
 
         return theta, cMin, xCenter, C
 
+    def reset(self):
+        self.Tree = Tree(self.x_start, self.x_goal)  # RGG tree
+        self.X_sample = set()
+        self.g_T = dict()  # upper bound of cost-to-come
+
     def planning(self):
         theta, cMin, xCenter, C = self.init()
 
         for k in range(self.iter_max):
-            # if k % 100 == 0:
-            #     log.debug(f"iteration: {k}")
-            #     plt.cla()
-            #     for v, w in self.Tree.E:
-            #         plt.plot([v.x, w.x], [v.y, w.y], "-g")
-            #     plt.show()
-            # log.debug(f"k, QV size: {k}, {len(self.Tree.QV)}")
+            if k == 300:
+                self.env.add_obstacle(60, 55, "circle")
+                self.reset()
+                theta, cMin, xCenter, C = self.init()
+
+            if k == 600:
+                self.env.add_obstacle(48, 60, "circle")
+                self.reset()
+                theta, cMin, xCenter, C = self.init()
             if not self.Tree.QE and not self.Tree.QV:
                 if k == 0:
                     m = self.x_range[1] * self.y_range[1] / 5
                 else:
-                    m = self.x_range[1] * self.y_range[1] / 10
+                    m = self.x_range[1] * self.y_range[1] / 5
 
                 if self.x_goal.parent is not None:
                     print(f"goal reached")
+                    print(f"iteration: {k}")
                     path_x, path_y = self.ExtractPath()
                     # print(f"path_x: {path_x}, path_y: {path_y}")
                     # self.path_history.append((path_x, path_y))
@@ -366,7 +374,7 @@ if __name__ == "__main__":
     x_start = (6, 86)  # Starting node
     x_goal = (80, 26)  # Goal node
     eta = 2
-    iter_max = 500
+    iter_max = 1500
     log.debug("start!!!")
 
     env = Environment(WIDTH, HEIGHT, 50)
@@ -377,11 +385,11 @@ if __name__ == "__main__":
     log.debug(f"x_start: {x_start}")
     log.debug(f"x_goal: {x_goal}")
     # env.add_obstacle(10, 6, "rectangle")
-    viz.draw_env(env)
 
     bit = BITStar(env, x_start, x_goal, eta, iter_max)
     # bit.animation("Batch Informed Trees (BIT*)")
     path_x, path_y = bit.planning()
+    viz.draw_env(env)
 
     viz.draw_path(path_x, path_y)
     plt.show()
