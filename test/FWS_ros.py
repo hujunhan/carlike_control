@@ -13,15 +13,15 @@ ROS = True
 
 if ROS:
     rospy.init_node("carlike_control")
-    pub = rospy.Publisher("car_control", Float32MultiArray, queue_size=10)
+    pub = rospy.Publisher("HubControl", Float32MultiArray, queue_size=10)
     r = rospy.Rate(10)
 ## Parameters
 TARGET_SPEED = 3.6
-MAX_TIME = 50.0
+MAX_TIME = 500.0
 N_IND_SEARCH = 10  # Search index number
 DT = 0.1  # time tick [s]
 # Path definition
-path = np.array([[0, 0], [10, 0]])
+path = np.array([[0, 0], [0.5, 0],[1,0.5],[1,1.5]])
 T = 5
 
 
@@ -223,7 +223,9 @@ if __name__ == "__main__":
             plt.pause(0.1)
         if ROS:
             msg = Float32MultiArray()
-            msg.data = [car.v, car.steer_front, car.steer_rear]
+            
+            msg.data = [1,car.v, car.v, car.v, car.v, car.steer_front, car.steer_rear, car.steer_front, car.steer_rear]
+            print(msg.data)
             pub.publish(msg)
             r.sleep()
 
