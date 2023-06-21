@@ -7,13 +7,47 @@ import math
 import matplotlib.pyplot as plt
 import rospy
 from std_msgs.msg import Float32MultiArray
+from nav_msgs.msg import Odometry
+
 
 ANIMATE = True
 ROS = True
+car = Car(x=0, y=0, yaw=0, v=0.0)
+
+
+def odometry_callback(msg):
+    """read the odometry message from the lidar SLAM and assign to car
+
+    Args:
+        msg (_type_): odometry message from the lidar SLAM
+    """
+    car.x = msg.pose.pose.position.x
+    car.y = msg.pose.pose.position.y
+    car.yaw = msg.pose.pose.orientation.z
+    print(f"current pose: {car.x}, {car.y}, {car.yaw}")
+
+
+def motor_callback(msg):
+    global motor_state
+    global car
+    motor_state = msg.data[
+        1:8
+    ]  # 0-3 motor speed, m/s, 4-7 motor steer, rad(-pi-pi, anti-clockwise), order: front left, rear left, front right, rear right
+    ## update the car state
+    car.steer_front = (motor_state[4] + motor_state[6]) / 2
+    car.steer_rear = (motor_state[5] + motor_state[7]) / 2
+    car.v = (motor_state[0] + motor_state[1] + motor_state[2] + motor_state[3]) / 4
+
 
 if ROS:
     rospy.init_node("carlike_control")
-    pub = rospy.Publisher("HubControl", Float32MultiArray, queue_size=10)
+    pub = rospy.Publisher("AgvControl", Float32MultiArray, queue_size=10)
+    motor_sub = rospy.Subscriber(
+        "AgvData", Float32MultiArray, queue_size=10, callback=motor_callback
+    )
+    odom_sub = rospy.Subscriber(
+        "odom", Odometry, queue_size=10, callback=odometry_callback
+    )
     r = rospy.Rate(10)
 ## Parameters
 TARGET_SPEED = 3.6
@@ -21,7 +55,7 @@ MAX_TIME = 500.0
 N_IND_SEARCH = 10  # Search index number
 DT = 0.1  # time tick [s]
 # Path definition
-path = np.array([[0, 0], [0.5, 0],[1,0.5],[1,1.5]])
+path = np.array([[0, 0], [0.5, 0], [1, 0.5], [1, 1.5]])
 T = 5
 
 
@@ -178,7 +212,6 @@ if __name__ == "__main__":
     sp = calc_speed_profile(cx, cy, cyaw, ck, TARGET_SPEED)
 
     ## Car
-    car = Car(x=0, y=0, yaw=0, v=0.0)
     if car.yaw - cyaw[0] >= math.pi:
         car.yaw -= math.pi * 2.0
     elif car.yaw - cyaw[0] <= -math.pi:
@@ -223,8 +256,18 @@ if __name__ == "__main__":
             plt.pause(0.1)
         if ROS:
             msg = Float32MultiArray()
-            
-            msg.data = [1,car.v, car.v, car.v, car.v, car.steer_front, car.steer_rear, car.steer_front, car.steer_rear]
+
+            msg.data = [
+                1,
+                car.v,
+                car.v,
+                car.v,
+                car.v,
+                car.steer_front,
+                car.steer_rear,
+                car.steer_front,
+                car.steer_rear,
+            ]
             print(msg.data)
             pub.publish(msg)
             r.sleep()
