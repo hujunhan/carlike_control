@@ -9,7 +9,10 @@ import rospy
 from std_msgs.msg import Float32MultiArray
 from nav_msgs.msg import Odometry
 
-
+trans_mat = np.asarray(
+    [[0.75377273, 0.6571352, 0.0], [-0.6571352, 0.75377273, -0.0], [-0.0, 0.0, 1.0]]
+)
+origin_position = [0.78, 0.68]
 ANIMATE = True
 ROS = True
 car = Car(x=0, y=0, yaw=0, v=0.0)
@@ -21,8 +24,14 @@ def odometry_callback(msg):
     Args:
         msg (_type_): odometry message from the lidar SLAM
     """
-    car.x = msg.pose.pose.position.x
-    car.y = msg.pose.pose.position.y
+    new_p = [
+        msg.pose.pose.position.x - origin_position[0],
+        msg.pose.pose.position.y - origin_position[1],
+        1,
+    ]
+    new_p = np.matmul(trans_mat, new_p)
+    car.x = new_p[0]
+    car.y = new_p[1]
     car.yaw = msg.pose.pose.orientation.z
     print(f"current pose: {car.x}, {car.y}, {car.yaw}")
 
