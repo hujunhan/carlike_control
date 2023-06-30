@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import rospy
 from std_msgs.msg import Float32MultiArray
 from nav_msgs.msg import Odometry
+from scipy.spatial.transform import Rotation as R
 
 trans_mat = np.asarray(
     [[0.75377273, 0.6571352, 0.0], [-0.6571352, 0.75377273, -0.0], [-0.0, 0.0, 1.0]]
@@ -29,10 +30,14 @@ def odometry_callback(msg):
         msg.pose.pose.position.y - origin_position[1],
         1,
     ]
+    ori = msg.pose.pose.orientation
+    quant = [ori.x, ori.y, ori.z, ori.w]
+    r = R.from_quat(quant)
+    euler = r.as_euler("xyz")
     new_p = np.matmul(trans_mat, new_p)
     car.x = new_p[0]
     car.y = new_p[1]
-    car.yaw = msg.pose.pose.orientation.z
+    car.yaw = euler[2]
     print(f"current pose: {car.x}, {car.y}, {car.yaw}")
 
 
@@ -277,8 +282,8 @@ if __name__ == "__main__":
                 car.steer_front,
                 car.steer_rear,
             ]
-            print(msg.data)
-            pub.publish(msg)
+            # print(msg.data)
+            # pub.publish(msg)
             r.sleep()
 
     # plot the steer history
