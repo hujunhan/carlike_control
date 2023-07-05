@@ -10,7 +10,7 @@ from carlike_control.helper import transform_2d
 
 
 class Car:
-    def __init__(self, x=0, y=0, yaw=0.0, v=0, length=4, width=2):
+    def __init__(self, x=0, y=0, yaw=0.0, v=0, length=0.56, width=0.56):
         ## shape of the car
         self.length = length
         self.width = width
@@ -64,10 +64,12 @@ class Car:
             self.update_all_steer(
                 [-small_angle, -large_angle, small_angle, large_angle]
             )
+            return [-small_angle, -large_angle, small_angle, large_angle]
         else:
             self.update_all_steer(
                 [large_angle, small_angle, -large_angle, -small_angle]
             )
+            return [large_angle, small_angle, -large_angle, -small_angle]
 
     def update_pose(self, x, y, theta):
         self.x, self.y, self.yaw = x, y, theta

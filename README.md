@@ -40,6 +40,7 @@ TODO:
 * Update four wheels steer according to bycicle model // 2023.4.10
 * replanning after obstacles changes // 2023.4.11
 * Test with real robot (Only with simulation state update) //2023.6.6
+* Test with real robot (with MPC control and lidar/encoder Feedback) //2023.7.5
 
 
 ## References

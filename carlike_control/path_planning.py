@@ -37,7 +37,6 @@ class CubicSpline1D:
     """
 
     def __init__(self, x, y):
-
         h = np.diff(x)
         if np.any(h < 0):
             raise ValueError("x coordinates must be sorted in ascending order")

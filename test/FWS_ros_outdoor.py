@@ -11,13 +11,13 @@ from nav_msgs.msg import Odometry
 from scipy.spatial.transform import Rotation as R
 
 trans_mat = np.asarray(
-    [[0.75377273, 0.6571352, 0.0], [-0.6571352, 0.75377273, -0.0], [-0.0, 0.0, 1.0]]
+    [[-0.70710678, 0.70710678, 0.0], [-0.70710678, -0.70710678, -0.0], [-0.0, 0.0, 1.0]]
 )
 INIT = True
 origin_position = [-2.65, -2.42]
 yaw_offset = 0
 ANIMATE = True
-ROS = False
+ROS = True
 car = Car(x=0, y=0, yaw=np.pi / 2, v=0.0)
 
 
@@ -47,7 +47,8 @@ def odometry_callback(msg):
     car.x = new_p[0]
     car.y = new_p[1]
     car.yaw = euler[2] + yaw_offset
-    print(f"current pose: {car.x:.2f}, {car.y:.2f}, {car.yaw/np.pi*180:.2f}")
+    # print(f"current pose: {car.x:.2f}, {car.y:.2f}, {car.yaw/np.pi*180:.2f}")
+    print(f"yaw:{euler[2]+yaw_offset}")
 
 
 def motor_callback(msg):
@@ -60,7 +61,7 @@ def motor_callback(msg):
     car.steer_front = (motor_state[4] + motor_state[6]) / 2
     car.steer_rear = (motor_state[5] + motor_state[7]) / 2
     car.v = (motor_state[0] + motor_state[1] + motor_state[2] + motor_state[3]) / 4
-    print(f"motor:{motor_state}")
+    # print(f'motor:{motor_state}')
 
 
 if ROS:
@@ -79,7 +80,7 @@ MAX_TIME = 500.0
 N_IND_SEARCH = 50  # Search index number
 DT = 0.1  # time tick [s]
 # Path definition
-path = np.array([[0, 0], [0, 1.0], [-1.0, 2.0], [-2.0, 2.0]])
+path = np.array([[0, 0], [0, 1.5], [1, 2], [2, 2], [19, 2], [19, 0]])
 T = 5
 
 
@@ -229,7 +230,7 @@ if __name__ == "__main__":
     import time
 
     if ANIMATE:
-        viz = Visualization((-3, 3), (-3, 3))
+        viz = Visualization((-3, 30), (-3, 10))
         plt.show(block=False)
     ## Path
     cx, cy, cyaw, ck, s = get_path_course()
@@ -310,7 +311,7 @@ if __name__ == "__main__":
             0,
             0,
         ]
-        print(msg.data)
+        # print(msg.data)
         pub.publish(msg)
     # plot the steer history
     # steer_history = np.array(steer_history)

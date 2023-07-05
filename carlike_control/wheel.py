@@ -6,7 +6,7 @@ from carlike_control.helper import transform_2d
 
 class Wheel:
     def __init__(
-        self, x=0, y=0, yaw=0, radius=0.5, width=0.2, limit=[-np.pi / 2, np.pi / 2]
+        self, x=0, y=0, yaw=0, radius=0.1, width=0.065, limit=[-np.pi / 2, np.pi / 2]
     ) -> None:
         self.x = x  # position of the wheel in the vehicle frame
         self.y = y

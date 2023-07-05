@@ -22,7 +22,6 @@ steer_f = np.pi / 10  # m # steering angle of the front wheel
 heading_angle = 0  # rad # heading angle of the vehicle
 
 if __name__ == "__main__":
-
     update_rate = 100  # Hz
     interval = 1 / update_rate  # s
     simulate_time = 30  # s
