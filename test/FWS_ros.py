@@ -10,7 +10,7 @@ from std_msgs.msg import Float32MultiArray
 from nav_msgs.msg import Odometry
 from scipy.spatial.transform import Rotation as R
 
-path = np.array([[0, 0], [0, 1.0], [-1.0, 2.0], [-2.0, 2.0]])
+path = np.array([[0, 0], [0, 1.0],[-1,1.5],[-1,2]])
 goal = path[-1]
 trans_mat = np.asarray(
     [[0.75377273, 0.6571352, 0.0], [-0.6571352, 0.75377273, -0.0], [-0.0, 0.0, 1.0]]
@@ -21,7 +21,7 @@ REACH_GOAL = False
 origin_position = [-2.65, -2.42]
 yaw_offset = 0
 ANIMATE = True
-ROS = False
+ROS = True
 car = Car(x=0, y=0, yaw=np.pi / 2, v=0.0)
 
 
@@ -66,7 +66,10 @@ def motor_callback(msg):
     ## update the car state
     car.steer_front = (motor_state[4] + motor_state[6]) / 2
     car.steer_rear = (motor_state[5] + motor_state[7]) / 2
-    car.v = (motor_state[0] + motor_state[1] + motor_state[2] + motor_state[3]) / 4
+    temp_speed=(motor_state[0] + motor_state[1] + motor_state[2] + motor_state[3]) / 4
+    if temp_speed>0.01:
+        car.v = (motor_state[0] + motor_state[1] + motor_state[2] + motor_state[3]) / 4
+
     print(f"motor:{motor_state}")
 
 
