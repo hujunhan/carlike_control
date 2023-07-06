@@ -95,7 +95,7 @@ class Car:
         self.v = self.v + a * DT
 
         self.v = np.clip(self.v, self.MIN_SPEED, self.MAX_SPEED)
-
+        return self.v
         # return self
 
     def calc_beta(self, steer_front, steer_rear):

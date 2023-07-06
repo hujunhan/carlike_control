@@ -172,43 +172,7 @@ class CubicSpline2D:
     Examples
     --------
     You can interpolate a 2D data points.
-    >>> import matplotlib.pyplot as plt
-    >>> x = [-2.5, 0.0, 2.5, 5.0, 7.5, 3.0, -1.0]
-    >>> y = [0.7, -6, 5, 6.5, 0.0, 5.0, -2.0]
-    >>> ds = 0.1  # [m] distance of each interpolated points
-    >>> sp = CubicSpline2D(x, y)
-    >>> s = np.arange(0, sp.s[-1], ds)
-    >>> rx, ry, ryaw, rk = [], [], [], []
-    >>> for i_s in s:
-    ...     ix, iy = sp.calc_position(i_s)
-    ...     rx.append(ix)
-    ...     ry.append(iy)
-    ...     ryaw.append(sp.calc_yaw(i_s))
-    ...     rk.append(sp.calc_curvature(i_s))
-    >>> plt.subplots(1)
-    >>> plt.plot(x, y, "xb", label="Data points")
-    >>> plt.plot(rx, ry, "-r", label="Cubic spline path")
-    >>> plt.grid(True)
-    >>> plt.axis("equal")
-    >>> plt.xlabel("x[m]")
-    >>> plt.ylabel("y[m]")
-    >>> plt.legend()
-    >>> plt.show()
-    .. image:: cubic_spline_2d_path.png
-    >>> plt.subplots(1)
-    >>> plt.plot(s, [np.rad2deg(iyaw) for iyaw in ryaw], "-r", label="yaw")
-    >>> plt.grid(True)
-    >>> plt.legend()
-    >>> plt.xlabel("line length[m]")
-    >>> plt.ylabel("yaw angle[deg]")
-    .. image:: cubic_spline_2d_yaw.png
-    >>> plt.subplots(1)
-    >>> plt.plot(s, rk, "-r", label="curvature")
-    >>> plt.grid(True)
-    >>> plt.legend()
-    >>> plt.xlabel("line length[m]")
-    >>> plt.ylabel("curvature [1/m]")
-    .. image:: cubic_spline_2d_curvature.png
+
     """
 
     def __init__(self, x, y):

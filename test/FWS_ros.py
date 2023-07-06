@@ -10,10 +10,14 @@ from std_msgs.msg import Float32MultiArray
 from nav_msgs.msg import Odometry
 from scipy.spatial.transform import Rotation as R
 
+path = np.array([[0, 0], [0, 1.0], [-1.0, 2.0], [-2.0, 2.0]])
+goal = path[-1]
 trans_mat = np.asarray(
     [[0.75377273, 0.6571352, 0.0], [-0.6571352, 0.75377273, -0.0], [-0.0, 0.0, 1.0]]
 )
 INIT = True
+REACH_GOAL = False
+
 origin_position = [-2.65, -2.42]
 yaw_offset = 0
 ANIMATE = True
@@ -27,7 +31,7 @@ def odometry_callback(msg):
     Args:
         msg (_type_): odometry message from the lidar SLAM
     """
-    global INIT, origin_position, yaw_offset
+    global INIT, origin_position, yaw_offset, REACH_GOAL
     ori = msg.pose.pose.orientation
     quant = [ori.x, ori.y, ori.z, ori.w]
     r = R.from_quat(quant)
@@ -44,6 +48,9 @@ def odometry_callback(msg):
     ]
 
     new_p = np.matmul(trans_mat, new_p)
+    # check if the car reaches the goal
+    if np.linalg.norm(new_p[:2] - goal) < 0.05:
+        REACH_GOAL = True
     car.x = new_p[0]
     car.y = new_p[1]
     car.yaw = euler[2] + yaw_offset
@@ -79,7 +86,6 @@ MAX_TIME = 500.0
 N_IND_SEARCH = 50  # Search index number
 DT = 0.1  # time tick [s]
 # Path definition
-path = np.array([[0, 0], [0, 1.0], [-1.0, 2.0], [-2.0, 2.0]])
 T = 5
 
 
@@ -254,7 +260,7 @@ if __name__ == "__main__":
     dl = 1.0  # course tick
     steer_history = []
     try:
-        while current_time < MAX_TIME:
+        while current_time < MAX_TIME and not REACH_GOAL:
             # get reference trajectory according to current velocity
             start = time.time()
             xref2, target_ind, dref = calc_ref_trajectory(
@@ -265,7 +271,7 @@ if __name__ == "__main__":
             u = controller.u_perterb.value[:, 0]
             end = time.time()
             # print(f"elapsed time:{end-start}")
-            car.update_state(u[0], u[1], u[2])
+            temp_v = car.update_state(u[0], u[1], u[2])
             # car.update_all_steer([u[1], u[1], u[2], u[2]])
             a, b, c, d = car.update_all_steer_simple(u[1])
             current_time += DT
@@ -281,37 +287,19 @@ if __name__ == "__main__":
                 plt.pause(0.1)
             if ROS:
                 msg = Float32MultiArray()
-
-                msg.data = [
-                    1,
-                    u[0],
-                    u[0],
-                    u[0],
-                    u[0],
-                    a,
-                    c,
-                    b,
-                    d,
-                ]
+                msg.data = [1, temp_v, temp_v, temp_v, temp_v, a, c, b, d]
                 print(msg.data)
                 pub.publish(msg)
                 r.sleep()
     except:
         msg = Float32MultiArray()
-
-        msg.data = [
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-        ]
+        msg.data = [0, 0, 0, 0, 0, 0, 0, 0, 0]
         print(msg.data)
         pub.publish(msg)
+    msg = Float32MultiArray()
+    msg.data = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+    print(msg.data)
+    pub.publish(msg)
     # plot the steer history
     # steer_history = np.array(steer_history)
     # plt.plot(range(len(steer_history)), steer_history[:, 0], label="front")

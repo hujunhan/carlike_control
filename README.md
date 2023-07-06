@@ -41,6 +41,7 @@ TODO:
 * replanning after obstacles changes // 2023.4.11
 * Test with real robot (Only with simulation state update) //2023.6.6
 * Test with real robot (with MPC control and lidar/encoder Feedback) //2023.7.5
+* Add via points plot, goal check, accel/velocity error fix //2023.7.6
 
 
 ## References

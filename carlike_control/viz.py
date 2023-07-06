@@ -26,6 +26,10 @@ class Visualization:
         self.show_order_index = [0, 1, 3, 2]
         pass
 
+    def draw_via_points(self, via_points):
+        for p in via_points:
+            self.ax.plot(p[0], p[1], "x", color="red")
+
     def draw_path(self, path_x, path_y):
         self.ax.plot(path_x, path_y, "-", color="green")
         pass
