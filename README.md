@@ -1,6 +1,29 @@
 # carlike_control
 Control for car-like mobile robot
 
+## Usage
+
+```bash
+# Terminal 1
+roslaunch hdl_localization indoor.launch
+
+# Terminal 2
+roscd hdl_localization/rviz
+rviz -d hdl_localization.rviz
+
+## Terminal 3
+roslaunch lslidar_driver lslidar_c16.launch
+
+## Terminal 4
+rosservice call /relocalize
+
+## Terminal 5
+rosrun HubMotor_pkg HubMotor
+
+## Run the control script
+python3 ./test/FWS_ros.py
+```
+
 ## Overview
 
 Control the car-like mobile robot
@@ -41,7 +64,8 @@ TODO:
 * replanning after obstacles changes // 2023.4.11
 * Test with real robot (Only with simulation state update) //2023.6.6
 * Test with real robot (with MPC control and lidar/encoder Feedback) //2023.7.5
-* Add via points plot, goal check, accel/velocity error fix //2023.7.6
+* Add via points plot, goal check, accel/velocity error fix //2023.7.5
+* Update test instructions in readme //2023.7.5
 
 
 ## References
