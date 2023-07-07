@@ -66,6 +66,7 @@ TODO:
 * Test with real robot (with MPC control and lidar/encoder Feedback) //2023.7.5
 * Add via points plot, goal check, accel/velocity error fix //2023.7.5
 * Update test instructions in readme //2023.7.5
+* add velocity constrain at destination //2023.7.6
 
 
 ## References
