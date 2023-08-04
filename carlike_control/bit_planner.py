@@ -6,7 +6,7 @@ from scipy.spatial.transform import Rotation as Rot
 from carlike_control.env import Environment
 from loguru import logger as log
 
-log.remove()
+# log.remove()
 
 
 class Node:
@@ -75,15 +75,6 @@ class BITStar:
         theta, cMin, xCenter, C = self.init()
 
         for k in range(self.iter_max):
-            if k == 300:
-                self.env.add_obstacle(60, 55, "circle")
-                self.reset()
-                theta, cMin, xCenter, C = self.init()
-
-            if k == 600:
-                self.env.add_obstacle(48, 60, "circle")
-                self.reset()
-                theta, cMin, xCenter, C = self.init()
             if not self.Tree.QE and not self.Tree.QV:
                 if k == 0:
                     m = self.x_range[1] * self.y_range[1] / 5
@@ -94,6 +85,7 @@ class BITStar:
                     print(f"goal reached")
                     print(f"iteration: {k}")
                     path_x, path_y = self.ExtractPath()
+                    return path_x, path_y
                     # print(f"path_x: {path_x}, path_y: {path_y}")
                     # self.path_history.append((path_x, path_y))
 
@@ -388,7 +380,12 @@ if __name__ == "__main__":
 
     bit = BITStar(env, x_start, x_goal, eta, iter_max)
     # bit.animation("Batch Informed Trees (BIT*)")
+    import time
+
+    a = time.time()
     path_x, path_y = bit.planning()
+    b = time.time()
+    print(f"elapsed time: {b-a}")
     viz.draw_env(env)
 
     viz.draw_path(path_x, path_y)

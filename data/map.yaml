@@ -1,0 +1,6 @@
+image: /home/wulong/kailun_project_2023-07-11/map.pgm
+resolution: 0.05
+origin: [-4.59338, -28.0173, 0.0]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196
