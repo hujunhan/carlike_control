@@ -67,7 +67,7 @@ TODO:
 * Add via points plot, goal check, accel/velocity error fix //2023.7.5
 * Update test instructions in readme //2023.7.5
 * add velocity constrain at destination //2023.7.6
-
+* Add RRT path planning, PGM map loader and test file //2023.8.10
 
 ## References
 

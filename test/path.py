@@ -1,22 +1,26 @@
-from carlike_control.bit_planner import BITStar
 from carlike_control.rrt_planner import RRT
 from carlike_control.pgm import Environment
 import matplotlib.pyplot as plt
 import numpy as np
 
 env = Environment("./data/map.pgm", "./data/map.yaml")
-x_start = (86 * 0.05, 205 * 0.05)  # Starting node
-x_goal = (616 * 0.05, 170 * 0.05)  # Goal node
+x_start = (86, 205)  # Starting node
+x_goal = (468, 306)  # Goal node
 print(f"x_start: {x_start}\nx_goal: {x_goal}")
-iter_max = 1500
-rrt = RRT(env, x_start, x_goal, 0.1)
-path = rrt.planning()
+round_max = 10
+iter_max = 2000
+step = 5
+rrt = RRT(env, x_start, x_goal, step=step)
+path = rrt.planning(iter_max=iter_max, round_max=round_max)
 print(f"RRT path: {path}")
 
 map_with_path = np.copy(env.map)
-path = (np.asarray(path) / env.resolution).astype(int)
+path = rrt.smooth_path(path)
+path = (np.asarray(path)).astype(int)
 path_x = path[:, 0]
 path_y = path[:, 1]
 plt.imshow(map_with_path, cmap="gray")
-plt.scatter(path_x, path_y, c="r", s=1)
+# plt.scatter(path_x, path_y, c="r", s=1)
+# draw path by line
+plt.plot(path_x, path_y, c="r", linewidth=1)
 plt.show()
