@@ -38,7 +38,7 @@ class Environment:
         ).reshape((int(height), int(width)))
 
     def __init__(self, mpg_path, yaml_path):
-        self.delta = 0.1  # grace period for collision detection
+        self.delta = 0.5  # grace period for collision detection
         # read the map into a numpy array
         self.map = self.read_pgm(mpg_path, byteorder="<")
         # read the yaml file into setting
@@ -121,7 +121,7 @@ class Environment:
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
-    env = Environment("./data/map.pgm", "./data/map.yaml")
+    env = Environment("./data/company-1.pgm", "./data/company.yaml")
     # draw the map
 
     # the size of the map

@@ -1,0 +1,7 @@
+image: /home/wulong/company.pgm
+resolution: 0.050000
+origin: [0.505, 0.48, -nan]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196
+
